@@ -57,6 +57,7 @@ int main()
   system(unload);
 
   // Step 6
+  printf("restore file\n");
   FILE *restore = fopen("/etc/passwd", "w");
   FILE *src = fopen("/tmp/passwd", "r");
   if (restore == NULL || src == NULL)
